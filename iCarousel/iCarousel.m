@@ -1512,26 +1512,34 @@ NSComparisonResult compareViewDepth(UIView *view1, UIView *view2, iCarousel *sel
         
 #ifdef ICAROUSEL_IOS
         
-        [UIView beginAnimations:nil context:nil];
-        [UIView setAnimationDuration:0.1];
-        [UIView setAnimationDelegate:itemView.superview];
-        [UIView setAnimationDidStopSelector:@selector(removeFromSuperview)];
         [self performSelector:@selector(queueItemView:) withObject:itemView afterDelay:0.1];
-        itemView.superview.layer.opacity = 0.0;
-        [UIView commitAnimations];
+        [UIView animateWithDuration:0.1 animations:^{
+            [self performSelector:@selector(queueItemView:) withObject:itemView afterDelay:0.1];
+            itemView.superview.layer.opacity = 0.0;
+        } completion:^(BOOL finished) {
+            if (finished) {
+                [itemView.superview removeFromSuperview];
+            }
+        }];
         
-        [UIView beginAnimations:nil context:nil];
-        [UIView setAnimationDelay:0.1];
-        [UIView setAnimationDuration:INSERT_DURATION];
-        [UIView setAnimationDelegate:self];
-        [UIView setAnimationDidStopSelector:@selector(depthSortViews)];
-        [self removeViewAtIndex:index];
-        _numberOfItems --;
-        _wrapEnabled = !![self valueForOption:iCarouselOptionWrap withDefault:_wrapEnabled];
-        [self updateNumberOfVisibleItems];
-        _scrollOffset = self.currentItemIndex;
-        [self didScroll];
-        [UIView commitAnimations];
+        
+        [UIView animateWithDuration:INSERT_DURATION
+                              delay:0.1
+                            options:UIViewAnimationOptionCurveLinear
+                         animations:^{
+            // Place properties and methods that change within the animation block.
+            [self removeViewAtIndex:index];
+            self->_numberOfItems--;
+            self->_wrapEnabled = !![self valueForOption:iCarouselOptionWrap withDefault:self->_wrapEnabled];
+            [self updateNumberOfVisibleItems];
+            self->_scrollOffset = self.currentItemIndex;
+            [self didScroll];
+        } completion:^(BOOL finished){
+            // This is called after the animations above complete.
+            if (finished) {
+                [self depthSortViews];
+            }
+        }];
         
 #else
 		[NSAnimationContext beginGrouping];
@@ -1595,12 +1603,16 @@ NSComparisonResult compareViewDepth(UIView *view1, UIView *view2, iCarousel *sel
 
 #ifdef ICAROUSEL_IOS
         
-        [UIView beginAnimations:nil context:nil];
-        [UIView setAnimationDuration:INSERT_DURATION];
-        [UIView setAnimationDelegate:self];
-        [UIView setAnimationDidStopSelector:@selector(didScroll)];
-        [self transformItemViews];
-        [UIView commitAnimations];
+        [UIView animateWithDuration:INSERT_DURATION
+                         animations:^{
+            // Perform transformations within this block.
+            [self transformItemViews];
+        } completion:^(BOOL finished){
+            // Completion block to be executed after animations.
+            if (finished) {
+                [self didScroll];
+            }
+        }];
         
 #else
 		[NSAnimationContext beginGrouping];
